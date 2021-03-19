@@ -1,6 +1,5 @@
 # 数据库代理转发java版本
 [![AUR](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](https://github.com/luohuihua/port-forwarding)
-[![](https://img.shields.io/badge/Author-zuihou-orange.svg)](https://github.com/luohuihua/port-forwarding)
 [![](https://img.shields.io/badge/version-0.0.1-brightgreen.svg)](https://github.com/luohuihua/port-forwarding)
 ## 简介
 - 有些情况不能直接连库，这项目提供数据库代理转发相关功能，可进行映射配置和白名单配置，监控管理，为了轻量直接使用sqlite数据库

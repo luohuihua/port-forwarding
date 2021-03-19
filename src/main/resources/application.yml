@@ -1,0 +1,67 @@
+server:
+  # 服务器的HTTP端口，默认为80
+  port: 9529
+  servlet:
+    # 应用的访问路径
+    context-path: /port-forwarding
+spring:
+  profiles:
+    active: dev
+  application:
+    name: port-forwarding
+  security:
+    user:
+      name: admin
+      password: 38679117@Ab
+  datasource:
+    url: jdbc:sqlite:/Users/luohuihua/ccssoft/port-forwarding/database/port-forwarding.sqlite
+    #    url: jdbc:sqlite:/data/apps/forwarding_9529/port-forwarding.sqlite
+    #    url: jdbc:sqlite:D:\\CcsToolPlatform\\port-forwarding.sqlite
+    driver-clajss-name: org.sqlite.JDBC
+    username:
+    password:
+#  mvc:
+#    #静态资源的请求方式
+#    static-path-pattern: classpath:/static/**
+#    view:
+#      # 定位模板的目录
+#      prefix: classpath:/templates/
+#      # 给返回的页面添加后缀名
+#      suffix: .html
+mybatis-plus:
+  configuration:
+    #日志打印
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    #驼峰命名
+    check-config-location: true
+  #实体扫描
+  type-aliases-package: com.luohh.portforwarding.model
+  #socket配置
+socket:
+  port: 9530
+  # 线程池 - 当线程池中空闲线程数量超过corePoolSize时，多余的线程会在多长时间内被销毁
+  pool-keep-alive-time: 60
+  # 线程池 - 核心线程数 5000
+  pool-core: 5000
+  # 线程池 - 最大线程数 5000
+  pool-max: 10000
+  # 线程队列容量 10
+  pool-queue-init: 30
+  #超时时间 15s
+  time-out: 15000
+  #ip白名单,初始化配置，启动后都是使用库里面数据
+  ip-white-lists:
+    - ip: 127.0.0.1
+    - ip: localhost
+  #映射地址port监听端口,target-ip目标ip,target-port目标端口,初始化配置，启动后都是使用库里面数据
+  port-mapper-address:
+    #测试库
+    - target-ip: 127.0.0.1
+      target-port: 1521
+      service-name: test
+      enable: true
+    #测试库1
+    - target-ip: 127.0.0.2
+      target-port: 1521
+      service-name: test1
+      enable: true

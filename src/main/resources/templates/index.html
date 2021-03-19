@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="cn" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel='stylesheet' href='https://www.layuicdn.com/layui/css/layui.css' media='all'>
+    <title>端口转发管理</title>
+</head>
+<body>
+<div class="layui-row">
+    <div class="layui-col-xs8">
+        <fieldset class="layui-elem-field">
+            <legend>映射列表</legend>
+            <div class="layui-field-box">
+                <table class="layui-hide" id="table" lay-filter="tableFilter"></table>
+            </div>
+        </fieldset>
+    </div>
+    <div class="layui-col-xs4">
+        <fieldset class="layui-elem-field">
+            <legend>IP白名单</legend>
+            <div class="layui-field-box">
+                <table class="layui-hide" id="ipTable" lay-filter="ipTableFilter"></table>
+            </div>
+        </fieldset>
+    </div>
+</div>
+<div class="layui-row">
+    <div class="layui-col-xs12">
+        <fieldset class="layui-elem-field site-demo-button">
+            <legend>导出快照</legend>
+            <div>
+                <a href="/port-forwarding/heap" class="layui-btn layui-btn-normal layui-btn-sm layui-btn-radius" target="_blank"><i class="layui-icon">&#xe601;</i>下载dump</a>
+                <a href="/port-forwarding/thread" class="layui-btn layui-btn-normal layui-btn-sm layui-btn-radius" target="_blank"><i class="layui-icon">&#xe601;</i>下载jstack</a>
+                <a href="/port-forwarding/monitor" class="layui-btn layui-btn-normal layui-btn-sm layui-btn-radius" target="_blank"><i class="layui-icon">&#xe629;</i>监控页面</a>
+            </div>
+        </fieldset>
+    </div>
+</div>
+
+<div class="layui-row">
+    <div class="layui-col-xs12">
+        <fieldset class="layui-elem-field">
+            <legend>系统信息</legend>
+            <div class="layui-field-box">
+
+                <div class="layui-row layui-col-space15">
+
+                    <div class="layui-col-md6">
+                        <div class="layui-card">
+                            <div class="layui-card-header">Java虚拟机信息</div>
+                            <div class="layui-card-body">
+                                <p>Java名称：<span th:text="${server.jvm.name}">Java</span></p>
+                                <p>Java版本：<span th:text="${server.jvm.version}">1.8.0</span></p>
+                                <p>启动时间：<span th:text="${server.jvm.startTime}"></span></p>
+                                <p>启动时间：<span th:text="${server.jvm.runTime}"></span></p>
+                                <p>安装路径:<span th:text="${server.jvm.home}"></span></p>
+                                <p>项目路径:<span th:text="${server.sys.userDir}"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="layui-col-md6">
+                        <div class="layui-card">
+                            <div class="layui-card-header">服务器信息</div>
+                            <div class="layui-card-body">
+                                <p>服务器名称：<span th:text="${server.sys.computerName}"></span></p>
+                                <p>操作系统：<span th:text="${server.sys.osName}"></span></p>
+                                <p>服务器IP：<span th:text="${server.sys.computerIp}"></span></p>
+                                <p>系统架构：<span th:text="${server.sys.osArch}"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="layui-row layui-col-space15">
+
+                    <div class="layui-col-md6">
+                        <div class="layui-card">
+                            <div class="layui-card-header">磁盘状态</div>
+                            <div class="layui-card-body">
+                                <table class="layui-table" lay-size="sm" lay-skin="nob">
+                                    <thead>
+                                    <tr>
+                                        <th>盘符路径</th>
+                                        <th>文件系统</th>
+                                        <th>盘符类型</th>
+                                        <th>总大小</th>
+                                        <th>可用大小</th>
+                                        <th>已用大小</th>
+                                        <th>已用百分比</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="sysFile : ${server.sysFiles}">
+                                        <td th:text="${sysFile.dirName}">C:\</td>
+                                        <td th:text="${sysFile.sysTypeName}">NTFS</td>
+                                        <td th:text="${sysFile.typeName}">local</td>
+                                        <td th:text="${sysFile.total}">0GB</td>
+                                        <td th:text="${sysFile.free}">0GB</td>
+                                        <td th:text="${sysFile.used}">0GB</td>
+                                        <td>[[${sysFile.usage}]]%</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="layui-col-md6">
+                        <div class="layui-card">
+                            <div class="layui-card-header">当前CPU内存监控: 单位(MB)</div>
+                            <div class="layui-card-body">
+                                <p>
+                                    总内存：<span th:text="${server.mem.total + 'G'}">0GB</span>
+                                    <span style="float: right;">JVM总内存：<span
+                                            th:text="${server.jvm.total + 'M'}">0MB</span></span>
+                                </p>
+                                <p>
+                                    已用内存：<span th:text="${server.mem.used + 'G'}">0GB</span>
+                                    <span style="float: right;">JVM已用内存：<span
+                                            th:text="${server.jvm.used + 'M'}">0MB</span></span>
+                                </p>
+                                <p>
+                                    剩余内存：<span th:text="${server.mem.free + 'G'}">0GB</span>
+                                    <span style="float: right;">JVM剩余内存：<span
+                                            th:text="${server.jvm.free + 'M'}">0MB</span></span>
+                                </p>
+                                <p>
+                                    使用率：<span>[[${server.mem.usage}]]%</span>
+                                    <span style="float: right;">JVM使用率：<span>[[${server.jvm.usage}]]%</span></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+
+            </div>
+        </fieldset>
+    </div>
+</div>
+
+<script src='https://www.layuicdn.com/layui/layui.js' charset='utf-8'></script>
+<script type="text/html" id="bar">
+{{d.enable>0?'<a class="layui-btn layui-btn-danger layui-btn-xs layui-btn-radius" lay-event="stop">停止</a>':'<a
+        class="layui-btn layui-btn-xs layui-btn-radius" lay-event="start">启动</a>'}}
+</script>
+<script>
+
+var $ = null;
+var table = null;
+var layer = null;
+var selectData = null;//所选数据
+layui.use(['layer', 'table', 'jquery'], function () {
+    layer = layui.layer; //弹层
+    table = layui.table;
+    $ = layui.$; //表格
+
+    //解决csrf问题
+    $(function () {
+        var token = $("meta[name='_csrf']").attr("content");
+        var header = $("meta[name='_csrf_header']").attr("content");
+        $(document).ajaxSend(function(e, xhr, options) {
+            xhr.setRequestHeader(header, token);
+        });
+    });
+    //需要登录
+    // if (!sessionStorage.loginName) {
+    //     layer.open({
+    //         type: 1,
+    //         title: '用户登录',
+    //         maxmin: true,
+    //         skin: 'layui-layer-lan',
+    //         area: ['350px', '220px'],
+    //         shadeClose: true, //点击遮罩关闭层
+    //         content: '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+    //             '    <label class="layui-form-label">账号</label>\n' +
+    //             '    <div class="layui-input-inline">\n' +
+    //             '      <input type="text" id="userName" required  lay-verify="required" placeholder="请输入账号" autocomplete="off" class="layui-input">\n' +
+    //             '    </div>\n' +
+    //             '  </div>\n' +
+    //             '  <div class="layui-form-item">\n' +
+    //             '    <label class="layui-form-label">密码</label>\n' +
+    //             '    <div class="layui-input-inline">\n' +
+    //             '      <input type="password" id="password" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">\n' +
+    //             '    </div>\n' +
+    //             '  </div>' +
+    //             ' <div class="layui-form-item">\n' +
+    //             '    <div class="layui-input-block">\n' +
+    //             '      <button class="layui-btn layui-btn-radius layui-btn-normal" onclick="handlerLogin()">登录</button>\n' +
+    //             '      <button class="layui-btn layui-btn-radius layui-btn-primary" onclick="handlerReset()">重置</button>\n' +
+    //             '    </div>\n' +
+    //             '  </div>'
+    //     });
+    // } else {
+    //     loadDatas();
+    // }
+    loadDatas();
+
+    //监听行工具事件
+    table.on('tool(tableFilter)', function (obj) {
+        var data = obj.data //获得当前行数据
+            , layEvent = obj.event; //获得 lay-event 对应的值
+        switch (layEvent) {
+            case 'start':
+                $.post('/port-forwarding/socket/start-forward', data, function () {
+                    layer.msg('启动成功');
+                    //执行重载
+                    table.reload('tableId');
+                });
+                break;
+            case 'stop':
+                $.post('/port-forwarding/socket/stop-forward', data, function () {
+                    layer.msg('停止成功');
+                    //执行重载
+                    table.reload('tableId');
+                });
+                break;
+        }
+    });
+    table.on('toolbar(tableFilter)', function (obj) {
+        var checkStatus = table.checkStatus(obj.config.id);
+        switch (obj.event) {
+            case 'add':
+                layer.open({
+                    type: 1,
+                    title: '新增映射',
+                    maxmin: true,
+                    skin: 'layui-layer-lan',
+                    area: ['350px', '350px'],
+                    shadeClose: true, //点击遮罩关闭层
+                    content: '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">目标IP</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="targetIp" required  lay-verify="required" placeholder="请输入目标IP" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">目标端口</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="targetPort" required  lay-verify="required" placeholder="请输入目标端口" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">服务名称</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="serviceName" required  lay-verify="required" placeholder="请输服务名称" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        ' <div class="layui-form-item">\n' +
+                        '    <div class="layui-input-block">\n' +
+                        '      <button class="layui-btn layui-btn-radius layui-btn-normal" onclick="handlerAdd()">新增</button>\n' +
+                        '    </div>\n' +
+                        '  </div>'
+                });
+                break;
+            case 'delete':
+                layer.confirm('确认是否是删除映射？', function (index) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/port-forwarding/socket/delete',
+                        contentType: 'application/json;charset=utf-8',
+                        data: JSON.stringify(checkStatus.data),
+                        success: function (data) {
+                            if (data) {
+                                layer.msg(data);
+                                loadDatas();
+                            } else {
+                                layer.msg('删除失败');
+                            }
+                        }
+                    });
+                });
+                break;
+            case 'update':
+                if (checkStatus.data == null || checkStatus.data.length <= 0) {
+                    layer.msg('请选择数据');
+                    return;
+                }
+                selectData = checkStatus.data[checkStatus.data.length - 1];
+                layer.open({
+                    type: 1,
+                    title: '修改映射',
+                    maxmin: true,
+                    skin: 'layui-layer-lan',
+                    area: ['350px', '350px'],
+                    shadeClose: true, //点击遮罩关闭层
+                    content: '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">目标IP</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="targetIp" required  value="' + selectData.targetIp + '" lay-verify="required" placeholder="请输入目标IP" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">目标端口</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="targetPort" required value="' + selectData.targetPort + '" lay-verify="required" placeholder="请输入目标端口" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">服务名称</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="serviceName" required value="' + selectData.serviceName + '" lay-verify="required" placeholder="请输服务名称" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        ' <div class="layui-form-item">\n' +
+                        '    <div class="layui-input-block">\n' +
+                        '      <button class="layui-btn layui-btn-radius layui-btn-normal" onclick="handlerUpdate()">保存</button>\n' +
+                        '    </div>\n' +
+                        '  </div>'
+                });
+                break;
+        }
+        ;
+    });
+
+
+    table.on('toolbar(ipTableFilter)', function (obj) {
+        var checkStatus = table.checkStatus(obj.config.id);
+        switch (obj.event) {
+            case 'add':
+                layer.open({
+                    type: 1,
+                    title: '新增IP白名单',
+                    maxmin: true,
+                    skin: 'layui-layer-lan',
+                    area: ['350px', '300px'],
+                    shadeClose: true, //点击遮罩关闭层
+                    content: '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">IP地址</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="ip" required  lay-verify="required" placeholder="请输入IP地址" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">备注</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="notes"  lay-verify="required" placeholder="请输入备注" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        ' <div class="layui-form-item">\n' +
+                        '    <div class="layui-input-block">\n' +
+                        '      <button class="layui-btn layui-btn-radius layui-btn-normal" onclick="handlerAddIp()">新增</button>\n' +
+                        '    </div>\n' +
+                        '  </div>'
+                });
+                break;
+            case 'delete':
+                layer.confirm('确认是否是删除白名单？', function (index) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/port-forwarding/socket/delete-ip',
+                        contentType: 'application/json;charset=utf-8',
+                        data: JSON.stringify(checkStatus.data),
+                        success: function (data) {
+                            if (data) {
+                                layer.msg(data);
+                                loadDatas();
+                            } else {
+                                layer.msg('删除失败');
+                            }
+                        }
+                    });
+                });
+                break;
+            case 'update':
+                if (checkStatus.data == null || checkStatus.data.length <= 0) {
+                    layer.msg('请选择数据');
+                    return;
+                }
+                selectData = checkStatus.data[checkStatus.data.length - 1];
+                layer.open({
+                    type: 1,
+                    title: '修改IP白名单',
+                    maxmin: true,
+                    skin: 'layui-layer-lan',
+                    area: ['350px', '300px'],
+                    shadeClose: true, //点击遮罩关闭层
+                    content: '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">IP地址</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="ip" value="' + selectData.ip + '" required  lay-verify="required" placeholder="请输入IP地址" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        '<div class="layui-form layui-form-item" style="padding-top: 20px">\n' +
+                        '    <label class="layui-form-label">备注</label>\n' +
+                        '    <div class="layui-input-inline">\n' +
+                        '      <input type="text" id="notes" value="' + selectData.notes + '"  lay-verify="required" placeholder="请输入备注" autocomplete="off" class="layui-input">\n' +
+                        '    </div>\n' +
+                        '  </div>\n' +
+                        ' <div class="layui-form-item">\n' +
+                        '    <div class="layui-input-block">\n' +
+                        '      <button class="layui-btn layui-btn-radius layui-btn-normal" onclick="handlerUpdateIp()">保存</button>\n' +
+                        '    </div>\n' +
+                        '  </div>'
+                });
+                break;
+        }
+        ;
+    });
+});
+
+/**
+ * 加载列表数据
+ */
+function loadDatas() {
+    table.render({
+        id: 'tableId'
+        , title: '端口转发列表'
+        , elem: '#table'
+        , url: '/port-forwarding/socket/get-config' //数据接口
+        , cols: [ [ //标题栏
+            {checkbox: true, align: 'center'},
+            // {field: 'id', title: 'id', align: 'center', sort: true},
+            {field: 'resourceIpPort', title: '源IP端口', align: 'center', sort: true},
+            {field: 'targetIp', title: '目标IP', align: 'center', sort: true}
+            , {field: 'targetPort', title: '目标端口', align: 'center', sort: true}
+            , {field: 'serviceName', title: '服务名称', align: 'center', sort: true}
+            // , {field: 'enable', title: '是否启动', align: 'center', sort: true}
+            , {fixed: 'right', title: '操作', width: 100, align: 'center', toolbar: '#bar'}
+        ]]
+        , toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+        //,skin: 'line' //表格风格
+        , even: true
+        //,page: true //是否显示分页
+        //,limits: [5, 7, 10]
+        //,limit: 5 //每页默认显示的数量
+    });
+
+    table.render({
+        id: 'ipTableId'
+        , title: '端口转发列表'
+        , elem: '#ipTable'
+        , url: '/port-forwarding/socket/get-ip-white-list' //数据接口
+        , cols: [ [ //标题栏
+            {checkbox: true, align: 'center'},
+            // {field: 'id', title: 'id', align: 'center', sort: true},
+            {field: 'ip', title: 'IP地址', align: 'center', sort: true},
+            {field: 'notes', title: '备注', align: 'center', sort: true}
+        ]]
+        , toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+        //,skin: 'line' //表格风格
+        , even: true
+        //,page: true //是否显示分页
+        //,limits: [5, 7, 10]
+        //,limit: 5 //每页默认显示的数量
+    });
+}
+
+/**
+ * 重置
+ */
+function handlerReset() {
+    $('#userName').val('');
+    $('#password').val('');
+}
+
+/**
+ * 登录
+ */
+function handlerLogin() {
+    $.post('/port-forwarding/socket/login', {
+        userName: $('#userName').val(),
+        password: $('#password').val()
+    }, function (data) {
+        if (data) {
+            layer.msg('登录成功');
+            sessionStorage.loginName = data;
+            layer.closeAll();
+            loadDatas();
+        } else {
+            layer.msg('登录失败');
+            sessionStorage.loginName = '';
+        }
+    });
+}
+
+/**
+ * 新增操作
+ */
+function handlerAdd() {
+    $.post('/port-forwarding/socket/add', {
+        targetIp: $('#targetIp').val(),
+        targetPort: $('#targetPort').val(),
+        serviceName: $('#serviceName').val()
+    }, function (data) {
+        if (data) {
+            if (data == '新增成功') {
+                layer.closeAll();
+                loadDatas();
+            }
+            layer.msg(data);
+        } else {
+            layer.msg('新增失败');
+        }
+    });
+}
+
+/**
+ * 修改保存
+ */
+function handlerUpdate() {
+    $.post('/port-forwarding/socket/update', {
+        id: selectData.id,
+        targetIp: $('#targetIp').val(),
+        targetPort: $('#targetPort').val(),
+        serviceName: $('#serviceName').val()
+    }, function (data) {
+        if (data) {
+            if (data == '修改成功') {
+                layer.closeAll();
+                loadDatas();
+            }
+            layer.msg(data);
+        } else {
+            layer.msg('修改失败');
+        }
+    });
+}
+
+/**
+ * 新增白名单操作
+ */
+function handlerAddIp() {
+    $.post('/port-forwarding/socket/add-ip', {
+        ip: $('#ip').val(),
+        notes: $('#notes').val()
+    }, function (data) {
+        if (data) {
+            if (data == '新增成功') {
+                layer.closeAll();
+                loadDatas();
+            }
+            layer.msg(data);
+        } else {
+            layer.msg('新增失败');
+        }
+    });
+}
+
+/**
+ * 修改保存
+ */
+function handlerUpdateIp() {
+    $.post('/port-forwarding/socket/update-ip', {
+        id: selectData.id,
+        ip: $('#ip').val(),
+        notes: $('#notes').val()
+    }, function (data) {
+        if (data) {
+            if (data == '修改成功') {
+                layer.closeAll();
+                loadDatas();
+            }
+            layer.msg(data);
+        } else {
+            layer.msg('修改失败');
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>
