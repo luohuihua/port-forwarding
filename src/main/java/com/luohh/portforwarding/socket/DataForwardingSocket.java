@@ -80,7 +80,7 @@ public class DataForwardingSocket extends Thread {
                     break;
                 }
                 if (data == null) {
-                    data = new byte[2048];
+                    data = new byte[5120];
                 } else {
 //                    log.info(getTitle() + "连接正在写入内容!");
                     lastTime = System.currentTimeMillis();

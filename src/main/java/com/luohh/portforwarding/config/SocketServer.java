@@ -112,9 +112,9 @@ public class SocketServer implements CommandLineRunner {
                         }
                         log.info("接收客户端:" + hostAddress + "连接成功");
                         InputStream inputStream = clientSocket.getInputStream();
-                        byte[] data = new byte[2048];
+                        byte[] data = new byte[5120];
                         int readlen = inputStream.read(data);
-                        String dataStr = new String(data);
+                        String dataStr = new String(data,"UTF-8");
                         log.info("读取到头部连接内容:" + dataStr);
                         for (PortMapperAddress portMapperAddress : socketConfigProperties.getPortMapperAddress()) {
                             if (portMapperAddress.getServiceName() == null || dataStr.indexOf(portMapperAddress.getServiceName() + ")") == -1) {
