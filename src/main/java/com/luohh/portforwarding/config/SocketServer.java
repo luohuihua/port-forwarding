@@ -112,14 +112,18 @@ public class SocketServer implements CommandLineRunner {
                         }
                         log.info("接收客户端:" + hostAddress + "连接成功");
                         InputStream inputStream = clientSocket.getInputStream();
-                        byte[] data = new byte[5120];
+                        byte[] data = new byte[10240];
+                        Thread.sleep(300);
                         int readlen = inputStream.read(data);
-                        String dataStr = new String(data,"UTF-8");
+                        String dataStr = new String(data, "UTF-8");
                         log.info("读取到头部连接内容:" + dataStr);
+                        boolean isClose = true;
                         for (PortMapperAddress portMapperAddress : socketConfigProperties.getPortMapperAddress()) {
                             if (portMapperAddress.getServiceName() == null || dataStr.indexOf(portMapperAddress.getServiceName() + ")") == -1) {
                                 continue;
                             }
+//                            clientSocket.close();
+                            isClose = false;
                             log.info("开始连接服务:" + portMapperAddress.getServiceName());
                             final String targetAddress = portMapperAddress.getTargetAddress();
                             if (!portMapperAddress.getEnable()) {
@@ -152,6 +156,11 @@ public class SocketServer implements CommandLineRunner {
                                 pool.execute(new DataForwardingSocket(hostAddress + "->" + targetAddress, clientSocket, remoteServerSocket, socketConfigProperties.getTimeOut(), data, readlen, inputStream));
                                 pool.execute(new DataForwardingSocket(targetAddress + "->" + hostAddress, remoteServerSocket, clientSocket, socketConfigProperties.getTimeOut()));
                             }).start();
+                        }
+                        if (isClose) {
+                            log.info("接收客户端:" + dataStr + "内容，Service not matched");
+                            clientSocket.close();
+                            continue;
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
