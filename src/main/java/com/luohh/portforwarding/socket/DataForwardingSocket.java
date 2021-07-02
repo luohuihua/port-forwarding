@@ -12,7 +12,7 @@ import java.net.Socket;
  * @author luohuihua
  */
 @Slf4j
-public class DataForwardingSocket extends Thread {
+public class DataForwardingSocket implements Runnable {
 
     /**
      * 标题
@@ -70,8 +70,8 @@ public class DataForwardingSocket extends Thread {
                 log.info(getTitle() + "连接线程开始，获取输入流!");
             }
             OutputStream out = targetSocket.getOutputStream();
-            sourceSocket.setSoTimeout(Math.toIntExact(timeOut * 40));
-            targetSocket.setSoTimeout(Math.toIntExact(timeOut * 40));
+            sourceSocket.setSoTimeout(Math.toIntExact(timeOut * 20));
+            targetSocket.setSoTimeout(Math.toIntExact(timeOut * 20));
             Long lastTime = System.currentTimeMillis();
             log.info(getTitle() + "连接线程开始，获取输出流!");
             while (true) {
@@ -95,7 +95,7 @@ public class DataForwardingSocket extends Thread {
                 readlen = in.read(data);
 //                log.info(getTitle() + "连接读取到内容长度:" + readlen);
                 // 连接过长时间没有读取到信息
-                if (System.currentTimeMillis() - lastTime > timeOut * 60) {
+                if (System.currentTimeMillis() - lastTime > timeOut * 30) {
                     log.info("连接过长时间没有读取到信息，连接:" + title + "结束");
                     break;
                 }

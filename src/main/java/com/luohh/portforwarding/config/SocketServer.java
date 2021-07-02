@@ -67,6 +67,7 @@ public class SocketServer implements CommandLineRunner {
                         Executors.defaultThreadFactory(),
                         new ThreadPoolExecutor.AbortPolicy()
                 );
+                socketConfigProperties.setThreadPoolExecutor(pool);
                 while (true) {
                     try {
                         //获取客户端连接
@@ -131,31 +132,34 @@ public class SocketServer implements CommandLineRunner {
                                 clientSocket.close();
                                 continue;
                             }
-                            new Thread(() -> {
-                                //建立远程连接
-                                Socket remoteServerSocket = null;
-                                try {
-                                    //实例化socket
-                                    remoteServerSocket = new Socket();
-                                    //获取sockaddress对象
-                                    SocketAddress socketAddress = new InetSocketAddress(portMapperAddress.getTargetIp(), portMapperAddress.getTargetPort());
-                                    //设置超时参数
-                                    remoteServerSocket.connect(socketAddress, Math.toIntExact(socketConfigProperties.getTimeOut()));
-                                } catch (IOException e) {
-                                    e.printStackTrace();
+                            pool.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //建立远程连接
+                                    Socket remoteServerSocket = null;
                                     try {
-                                        clientSocket.close();
-                                    } catch (IOException ioException) {
-                                        ioException.printStackTrace();
+                                        //实例化socket
+                                        remoteServerSocket = new Socket();
+                                        //获取sockaddress对象
+                                        SocketAddress socketAddress = new InetSocketAddress(portMapperAddress.getTargetIp(), portMapperAddress.getTargetPort());
+                                        //设置超时参数
+                                        remoteServerSocket.connect(socketAddress, Math.toIntExact(socketConfigProperties.getTimeOut()));
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                        try {
+                                            clientSocket.close();
+                                        } catch (IOException ioException) {
+                                            ioException.printStackTrace();
+                                        }
+                                        log.info("连接服务:" + portMapperAddress.getServiceName() + "出现超时，断开客户端连接");
+                                        return;
                                     }
-                                    log.info("连接服务:" + portMapperAddress.getServiceName() + "出现超时，断开客户端连接");
-                                    return;
+                                    log.info("创建目标连接:" + hostAddress + "->" + targetAddress + "成功");
+                                    //启动线程处理数据
+                                    pool.execute(new DataForwardingSocket(hostAddress + "->" + targetAddress, clientSocket, remoteServerSocket, socketConfigProperties.getTimeOut(), data, readlen, inputStream));
+                                    pool.execute(new DataForwardingSocket(targetAddress + "->" + hostAddress, remoteServerSocket, clientSocket, socketConfigProperties.getTimeOut()));
                                 }
-                                log.info("创建目标连接:" + hostAddress + "->" + targetAddress + "成功");
-                                //启动线程处理数据
-                                pool.execute(new DataForwardingSocket(hostAddress + "->" + targetAddress, clientSocket, remoteServerSocket, socketConfigProperties.getTimeOut(), data, readlen, inputStream));
-                                pool.execute(new DataForwardingSocket(targetAddress + "->" + hostAddress, remoteServerSocket, clientSocket, socketConfigProperties.getTimeOut()));
-                            }).start();
+                            });
                         }
                         if (isClose) {
                             log.info("接收客户端:" + dataStr + "内容，Service not matched");
@@ -172,48 +176,7 @@ public class SocketServer implements CommandLineRunner {
                 log.info(e.getMessage(), e);
             }
         } else {
-            //多个端口转发
-            for (PortMapperAddress portMapperAddress : socketConfigProperties.getPortMapperAddress()) {
-                new Thread(() -> {
-                    //启动本地监听端口
-                    ServerSocket serverSocket = null;
-                    try {
-                        serverSocket = new ServerSocket(portMapperAddress.getPort());
 
-                        String localAddress = "";
-
-                        localAddress = InetAddress.getLocalHost().getHostAddress() + ":" + portMapperAddress.getPort();
-                        log.info("本地socket:" + localAddress + "->" + portMapperAddress.getTargetIp() + ":" + portMapperAddress.getTargetIp() + "启动");
-
-                        Socket clientSocket = null;
-                        Socket remoteServerSocket = null;
-                        while (true) {
-                            try {
-                                //获取客户端连接
-                                clientSocket = serverSocket.accept();
-                                log.info("接收客户端连接成功");
-                                final String targetAddress = portMapperAddress.getTargetAddress();
-                                if (!portMapperAddress.getEnable()) {
-                                    log.info("目标:" + targetAddress + "转发停止中。。。。。");
-                                    clientSocket.close();
-                                } else {
-                                    //建立远程连接
-                                    remoteServerSocket = new Socket(portMapperAddress.getTargetIp(), portMapperAddress.getTargetPort());
-                                    log.info("创建目标连接:" + targetAddress + "成功");
-                                    //启动线程处理数据
-                                    (new DataForwardingSocket(localAddress + "->" + targetAddress, clientSocket, remoteServerSocket, socketConfigProperties.getTimeOut())).start();
-                                    (new DataForwardingSocket(targetAddress + "->" + localAddress, remoteServerSocket, clientSocket, socketConfigProperties.getTimeOut())).start();
-                                }
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-
-            }
         }
     }
 

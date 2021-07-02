@@ -9,7 +9,6 @@ import com.luohh.portforwarding.service.IIpWhiteListService;
 import com.luohh.portforwarding.service.IPortMapperAddressService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;

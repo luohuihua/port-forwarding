@@ -67,6 +67,9 @@
                         <div class="layui-card">
                             <div class="layui-card-header">服务器信息</div>
                             <div class="layui-card-body">
+                                <p>线程任务总数：<span th:text="${taskSum}"></span></p>
+                                <p>线程任务运行数：<span th:text="${taskRunningSum}"></span></p>
+                                <p>线程任务空闲数：<span th:text="${taskFreeSum}"></span></p>
                                 <p>服务器名称：<span th:text="${server.sys.computerName}"></span></p>
                                 <p>操作系统：<span th:text="${server.sys.osName}"></span></p>
                                 <p>服务器IP：<span th:text="${server.sys.computerIp}"></span></p>

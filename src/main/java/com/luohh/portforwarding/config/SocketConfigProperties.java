@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * socket相关配置
@@ -49,4 +50,8 @@ public class SocketConfigProperties {
      * 线程队列容量
      */
     private Integer poolQueueInit;
+    /**
+     * 线程池
+     */
+    private ThreadPoolExecutor threadPoolExecutor;
 }

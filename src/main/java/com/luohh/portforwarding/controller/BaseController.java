@@ -3,8 +3,10 @@ package com.luohh.portforwarding.controller;
 import com.luohh.actuator.jvm.Jmap;
 import com.luohh.actuator.jvm.Jstack;
 import com.luohh.actuator.jvm.Server;
+import com.luohh.portforwarding.config.SocketConfigProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author luohuihua
@@ -22,6 +25,9 @@ import java.io.IOException;
 @Controller
 @Slf4j
 public class BaseController {
+    @Autowired
+    private SocketConfigProperties socketConfigProperties;
+
     /**
      * 首页
      *
@@ -34,6 +40,13 @@ public class BaseController {
         Server server = new Server();
         server.copyTo();
         mmap.put("server", server);
+        ThreadPoolExecutor threadPoolExecutor = socketConfigProperties.getThreadPoolExecutor();
+        // 线程任务总数
+        mmap.put("taskSum", threadPoolExecutor.getTaskCount());
+        // 线程任务运行数
+        mmap.put("taskRunningSum", threadPoolExecutor.getActiveCount());
+        // 线程任务空闲数
+        mmap.put("taskFreeSum", threadPoolExecutor.getCompletedTaskCount());
         return "index";
     }
 
